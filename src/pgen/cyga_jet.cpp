@@ -70,9 +70,9 @@ void Mesh::InitUserMeshData(ParameterInput *pin) {
     }
 
     // left side of interface
-    Real rho_left = pin->GetReal("problem", "dl");
-    Real pgas_left = pin->GetReal("problem", "pl");
-    Real rho_ratio = pin->GetReal("problem", "dratio");
+    Real rho_left = pin->GetReal("problem", "d_icm");
+    Real pgas_left = pin->GetReal("problem", "p");
+    Real rho_ratio = pin->GetReal("problem", "d_ratio");
     Real bbx_left = 0.0, bby_left = 0.0, bbz_left = 0.0;
     Real vx_left = 0.0, vy_left = 0.0, vz_left = 0.0;
     if (MAGNETIC_FIELDS_ENABLED) {
