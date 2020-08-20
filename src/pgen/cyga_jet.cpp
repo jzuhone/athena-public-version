@@ -40,8 +40,8 @@ namespace {
     Real bbz_left, bbz_right;
 } // namespace
 
-// BCs on L-x1 (left edge) of grid with jet inflow conditions
-void JetInnerY1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &prim, FaceField &b,
+// BCs on L-x2 (left edge) of grid with jet inflow conditions
+void JetInnerX2(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &prim, FaceField &b,
                 Real time, Real dt,
                 int il, int iu, int jl, int ju, int kl, int ku, int ngh);
 
