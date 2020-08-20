@@ -38,6 +38,7 @@ namespace {
     Real pgas_left, pgas_right, vx_left, vx_right, vy_left, vy_right;
     Real vz_left, vz_right, bbx_left, bbx_right, bby_left, bby_right;
     Real bbz_left, bbz_right;
+    bool fire_jet;
 } // namespace
 
 // BCs on L-x2 (left edge) of grid with jet inflow conditions
@@ -56,10 +57,10 @@ void Mesh::InitUserMeshData(ParameterInput *pin) {
     // initialize global variables
 
     // Fluid parameters
-    icm_pos0   = pin->GetReal("problem", "icm_pos0");
-    icm_angle  = pin->GetReal("problem", "icm_angle");
-    icm_angle *= PI/180;
-    tan_icm    = std::tan(icm_angle);
+    icm_pos0 = pin->GetReal("problem", "icm_pos0");
+    icm_angle = pin->GetReal("problem", "icm_angle");
+    icm_angle *= PI / 180;
+    tan_icm = std::tan(icm_angle);
 
     std::stringstream msg;
 
@@ -83,24 +84,29 @@ void Mesh::InitUserMeshData(ParameterInput *pin) {
 
     // right side of interface
     pgas_right = pgas_left;
-    rho_right = rho_left*rho_ratio;
+    rho_right = rho_left * rho_ratio;
     bbx_right = 0.0, bby_right = 0.0, bbz_right = 0.0;
     vx_right = 0.0, vy_right = 0.0, vz_right = 0.0;
 
     // Jet parameters
-    d_jet      = pin->GetReal("problem", "d_jet");
-    p_jet      = pin->GetReal("problem", "p_jet");
-    vx_jet     = pin->GetReal("problem", "vx_jet");
-    vy_jet     = pin->GetReal("problem", "vy_jet");
-    vz_jet     = pin->GetReal("problem", "vz_jet");
-    if (MAGNETIC_FIELDS_ENABLED) {
-        bx_jet = pin->GetReal("problem", "bx_jet");
-        by_jet = pin->GetReal("problem", "by_jet");
-        bz_jet = pin->GetReal("problem", "bz_jet");
+
+    fire_jet = pin->GetBool("problem", "use_jet")
+
+    if (fire_jet) {
+        d_jet = pin->GetReal("problem", "d_jet");
+        p_jet = pin->GetReal("problem", "p_jet");
+        vx_jet = pin->GetReal("problem", "vx_jet");
+        vy_jet = pin->GetReal("problem", "vy_jet");
+        vz_jet = pin->GetReal("problem", "vz_jet");
+        if (MAGNETIC_FIELDS_ENABLED) {
+            bx_jet = pin->GetReal("problem", "bx_jet");
+            by_jet = pin->GetReal("problem", "by_jet");
+            bz_jet = pin->GetReal("problem", "bz_jet");
+        }
+        x_jet = pin->GetReal("problem", "x_jet");
+        r_jet = pin->GetReal("problem", "r_jet");
+        x3_0 = 0.5 * (mesh_size.x3max + mesh_size.x3min);
     }
-    x_jet      = pin->GetReal("problem", "x_jet");
-    r_jet      = pin->GetReal("problem", "r_jet");
-    x3_0 = 0.5*(mesh_size.x3max + mesh_size.x3min);
 
     // enroll boundary value function pointers
     EnrollUserBoundaryFunction(BoundaryFace::inner_x2, JetInnerX2);
@@ -250,7 +256,7 @@ void JetInnerX2(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &prim, FaceF
         for (int j=1; j<=ngh; ++j) {
             for (int i=il; i<=iu; ++i) {
                 Real rad = std::sqrt(SQR(pco->x1v(i)-x_jet) + SQR(pco->x3v(k)-x3_0));
-                if (rad <= r_jet) {
+                if (rad <= r_jet && fire_jet) {
                     prim(IDN,k,jl-j,i) = d_jet;
                     prim(IVX,k,jl-j,i) = vx_jet;
                     prim(IVY,k,jl-j,i) = vy_jet;
@@ -274,7 +280,7 @@ void JetInnerX2(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &prim, FaceF
 #pragma omp simd
                 for (int i=il; i<=iu+1; ++i) {
                     Real rad = std::sqrt(SQR(pco->x1v(i)-x_jet) + SQR(pco->x3v(k)-x3_0));
-                    if (rad <= r_jet) {
+                    if (rad <= r_jet && fire_jet) {
                         b.x1f(k,jl-j,i) = bx_jet;
                     } else {
                         b.x1f(k,jl-j,i) = b.x1f(k,jl,i);
@@ -288,7 +294,7 @@ void JetInnerX2(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &prim, FaceF
 #pragma omp simd
                 for (int i=il; i<=iu; ++i) {
                     Real rad = std::sqrt(SQR(pco->x1v(i)-x_jet) + SQR(pco->x3v(k)-x3_0));
-                    if (rad <= r_jet) {
+                    if (rad <= r_jet && fire_jet) {
                         b.x2f(k,jl-j,i) = by_jet;
                     } else {
                         b.x2f(k,jl-j,i) = b.x2f(k,jl,i);
@@ -302,7 +308,7 @@ void JetInnerX2(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &prim, FaceF
 #pragma omp simd
                 for (int i=il; i<=iu; ++i) {
                     Real rad = std::sqrt(SQR(pco->x1v(i)-x_jet) + SQR(pco->x3v(k)-x3_0));
-                    if (rad <= r_jet) {
+                    if (rad <= r_jet && fire_jet) {
                         b.x3f(k,jl-j,i) = bz_jet;
                     } else {
                         b.x3f(k,jl-j,i) = b.x3f(k,jl,i);
