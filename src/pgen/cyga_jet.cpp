@@ -32,13 +32,12 @@
 #endif
 
 namespace {
-    Real d_amb, p_amb, vx_amb, vy_amb, vz_amb, bx_amb, by_amb, bz_amb;
-    Real r_jet, d_jet, p_jet, vx_jet, vy_jet, vz_jet, bx_jet, by_jet, bz_jet;
-    Real gm1, x_jet, x3_0, icm_pos0, icm_angle, rho_ratio, rho_left, rho_right;
-    Real pgas_left, pgas_right, vx_left, vx_right, vy_left, vy_right;
-    Real vz_left, vz_right, bbx_left, bbx_right, bby_left, bby_right;
-    Real bbz_left, bbz_right;
-    bool fire_jet;
+  Real r_jet, d_jet, p_jet, vx_jet, vy_jet, vz_jet, bx_jet, by_jet, bz_jet;
+  Real gm1, x_jet, x3_0, icm_pos0, icm_angle, lobe_icm_ratio, rho_left;
+  Real rho_right, lobe_jet_ratio, pgas_left, pgas_right, vx_left, vx_right;
+  Real vy_left, vy_right, tan_icm, vz_left, vz_right, bbx_left, bbx_right;
+  Real bby_left, bby_right, bbz_left, bbz_right;
+  bool fire_jet;
 } // namespace
 
 // BCs on L-x2 (left edge) of grid with jet inflow conditions
@@ -64,18 +63,18 @@ void Mesh::InitUserMeshData(ParameterInput *pin) {
 
     std::stringstream msg;
 
-    if (icm_pos0 < pmy_mesh->mesh_size.x1min || icm_pos0 > pmy_mesh->mesh_size.x1max) {
-        msg << "### FATAL ERROR in Problem Generator\n"
-            << "icm_pos0=" << icm_pos0 << " lies outside domain" << std::endl;
-        ATHENA_ERROR(msg);
-    }
+    //if (icm_pos0 < pmy_mesh->mesh_size.x1min || icm_pos0 > pmy_mesh->mesh_size.x1max) {
+    //    msg << "### FATAL ERROR in Problem Generator\n"
+    //        << "icm_pos0=" << icm_pos0 << " lies outside domain" << std::endl;
+    //    ATHENA_ERROR(msg);
+	//}
 
     // left side of interface
-    Real rho_left = pin->GetReal("problem", "d_icm");
-    Real pgas_left = pin->GetReal("problem", "p");
-    Real rho_ratio = pin->GetReal("problem", "d_ratio");
-    Real bbx_left = 0.0, bby_left = 0.0, bbz_left = 0.0;
-    Real vx_left = 0.0, vy_left = 0.0, vz_left = 0.0;
+    rho_left = pin->GetReal("problem", "d_icm");
+    pgas_left = pin->GetReal("problem", "p");
+    lobe_icm_ratio = pin->GetReal("problem", "lobe_icm_ratio");
+    bbx_left = 0.0, bby_left = 0.0, bbz_left = 0.0;
+    vx_left = 0.0, vy_left = 0.0, vz_left = 0.0;
     if (MAGNETIC_FIELDS_ENABLED) {
         bbx_left = pin->GetReal("problem", "bxl");
         bby_left = pin->GetReal("problem", "byl");
@@ -84,17 +83,18 @@ void Mesh::InitUserMeshData(ParameterInput *pin) {
 
     // right side of interface
     pgas_right = pgas_left;
-    rho_right = rho_left * rho_ratio;
+    rho_right = rho_left * lobe_icm_ratio;
     bbx_right = 0.0, bby_right = 0.0, bbz_right = 0.0;
     vx_right = 0.0, vy_right = 0.0, vz_right = 0.0;
 
     // Jet parameters
 
-    fire_jet = pin->GetBool("problem", "use_jet")
+    fire_jet = pin->GetBoolean("problem", "use_jet");
 
     if (fire_jet) {
-        d_jet = pin->GetReal("problem", "d_jet");
-        p_jet = pin->GetReal("problem", "p_jet");
+        lobe_jet_ratio = pin->GetReal("problem", "lobe_jet_ratio");
+        d_jet = lobe_jet_ratio*rho_right;
+        p_jet = pin->GetReal("problem", "p");
         vx_jet = pin->GetReal("problem", "vx_jet");
         vy_jet = pin->GetReal("problem", "vy_jet");
         vz_jet = pin->GetReal("problem", "vz_jet");
@@ -141,7 +141,7 @@ void MeshBlock::ProblemGenerator(ParameterInput *pin) {
         Real bbx = bbx_left;
         Real bby = bby_left;
         Real bbz = bbz_left;
-	    Real icm_pos = icm_pos0 + pcoord->x2v(j)*tan_icm;
+	Real icm_pos = icm_pos0 + pcoord->x2v(j)*tan_icm;
         bool right_side = pcoord->x1v(i) > icm_pos;
         if (right_side) {
           rho = rho_right;
